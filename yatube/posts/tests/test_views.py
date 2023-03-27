@@ -238,6 +238,3 @@ class TaskPagesTests(TestCase):
             reverse('posts:profile_unfollow', kwargs={'username': 'auth'})
         )
         self.assertEqual(follow_count_first, Follow.objects.count())
-
-        
-
