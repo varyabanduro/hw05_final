@@ -67,34 +67,48 @@ class TaskPagesTests(TestCase):
 
     def test_pages_uses_correct_template_for_author(self):
         templates_pages_names = {
-            reverse('posts:index'): 'posts/index.html',
+            reverse('posts:index'): ('posts/index.html'),
             reverse('posts:group_list', kwargs={'slug': 'test-slug'}):
-                'posts/group_list.html',
+                ('posts/group_list.html'),
             reverse('posts:profile', kwargs={'username': 'HasNoName'}):
                 ('posts/profile.html'),
             reverse('posts:post_detail', kwargs={'post_id': '1'}):
                 ('posts/post_detail.html'),
             reverse('posts:post_edit', kwargs={'post_id': '1'}):
                 ('posts/create_post.html'),
-            reverse('posts:post_create'): 'posts/create_post.html',
+            reverse('posts:post_create'): ('posts/create_post.html'),
+            reverse('posts:follow_index'): ('posts/follow.html'),
+            reverse('posts:profile_follow', kwargs={'username': 'HasNoName'}):
+                ('posts/profile.html'),
+            reverse(
+                    'posts:profile_unfollow',
+                    kwargs={'username': 'HasNoName'}
+            ): ('posts/profile.html'),
         }
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.author_client.get(reverse_name)
+                response = self.author_client.get(reverse_name, follow=True)
                 self.assertTemplateUsed(response, template)
 
     def test_pages_uses_correct_template_for_guest(self):
         templates_pages_names = {
-            reverse('posts:index'): 'posts/index.html',
+            reverse('posts:index'): ('posts/index.html'),
             reverse('posts:group_list', kwargs={'slug': 'test-slug'}):
-                'posts/group_list.html',
+                ('posts/group_list.html'),
             reverse('posts:profile', kwargs={'username': 'HasNoName'}):
                 ('posts/profile.html'),
             reverse('posts:post_detail', kwargs={'post_id': '1'}):
                 ('posts/post_detail.html'),
             reverse('posts:post_edit', kwargs={'post_id': '1'}):
                 ('users/login.html'),
-            reverse('posts:post_create'): 'users/login.html',
+            reverse('posts:post_create'): ('users/login.html'),
+            reverse('posts:follow_index'): ('users/login.html'),
+            reverse('posts:profile_follow', kwargs={'username': 'HasNoName'}):
+                ('users/login.html'),
+            reverse(
+                    'posts:profile_unfollow',
+                    kwargs={'username': 'HasNoName'}
+            ): ('users/login.html'),
         }
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
@@ -143,13 +157,10 @@ class TaskPagesTests(TestCase):
         text = post.text
         post_id = post.pk
         image = post.image
-        comment = response.context['comments'][0]
-        post_comment = comment.text
         self.assertEqual(text, self.post.text)
         self.assertEqual(post_author, self.author)
         self.assertEqual(post_id, self.post.pk)
         self.assertEqual(image, self.post.image)
-        self.assertEqual(post_comment, self.comment.text)
 
     def test_post_edit_show_correct_context(self):
         response = self.author_client.get(
@@ -238,3 +249,43 @@ class TaskPagesTests(TestCase):
             reverse('posts:profile_unfollow', kwargs={'username': 'auth'})
         )
         self.assertEqual(follow_count_first, Follow.objects.count())
+
+    def test_guest_client_cannot_follow_someone(self):
+        follow_count_first = Follow.objects.count()
+        self.guest_client.get(
+            reverse('posts:profile_follow', kwargs={'username': 'auth'})
+        )
+        self.assertEqual(follow_count_first, Follow.objects.count())
+        self.guest_client.get(
+            reverse('posts:profile_unfollow', kwargs={'username': 'auth'})
+        )
+        self.assertEqual(follow_count_first, Follow.objects.count())
+
+    def test_author_cannot_follow_himself(self):
+        follow_count_first = Follow.objects.count()
+        self.author_client.get(
+            reverse('posts:profile_follow', kwargs={'username': 'auth'})
+        )
+        self.assertEqual(follow_count_first, Follow.objects.count())
+        self.author_client.get(
+            reverse('posts:profile_unfollow', kwargs={'username': 'auth'})
+        )
+        self.assertEqual(follow_count_first, Follow.objects.count())
+
+    def test_comment_show_correct_context(self):
+        responses = [
+            self.authorized_client.get(
+                reverse('posts:post_detail', kwargs={'post_id': '1'})
+            ),
+            self.guest_client.get(
+                reverse('posts:post_detail', kwargs={'post_id': '1'})
+            ),
+            self.author_client.get(
+                reverse('posts:post_detail', kwargs={'post_id': '1'})
+            )
+        ]
+        for response in responses:
+            with self.subTest(response=response):
+                comment = response.context['comments'][0]
+                post_comment = comment.text
+                self.assertEqual(post_comment, self.comment.text)

@@ -2,6 +2,7 @@ from django.db import models
 from core.models import CreatedModel
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 
 POST_CUT: int = 15
@@ -61,6 +62,14 @@ class Comment(CreatedModel):
     )
     text = models.TextField()
 
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Коментарии'
+        ordering = ['-created']
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
@@ -73,3 +82,14 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        verbose_name = 'Подписчик'
+        verbose_name_plural = 'Подписчики'
+        ordering = ['-user']
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_user",
+                fields=["user", "author"],
+            ),
+        ]

@@ -192,3 +192,26 @@ class TaskCreateFormTests(TestCase):
                 id=comment_count + 1
             ).exists()
         )
+
+    def test_add_comment_for_author(self):
+        posts_count = Post.objects.count()
+        comment_count = Comment.objects.count()
+        form_data = {
+            'text': 'Текст комментария',
+        }
+        response = self.author_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': posts_count}),
+            data=form_data,
+            follow=True
+        )
+        redirect = (
+            reverse('posts:post_detail', kwargs={'post_id': posts_count})
+        )
+        self.assertRedirects(response, redirect)
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+        self.assertTrue(
+            Comment.objects.filter(
+                text=form_data['text'],
+                id=comment_count + 1
+            ).exists()
+        )

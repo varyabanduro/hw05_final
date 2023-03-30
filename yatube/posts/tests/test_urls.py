@@ -41,6 +41,9 @@ class TaskURLTests(TestCase):
             '/posts/1/edit/': HTTPStatus.FOUND,
             '/create/': HTTPStatus.FOUND,
             '/unexisting_page/': HTTPStatus.NOT_FOUND,
+            '/follow/': HTTPStatus.FOUND,
+            '/profile/HasNoName/follow/': HTTPStatus.FOUND,
+            '/profile/HasNoName/unfollow/': HTTPStatus.FOUND,
         }
         for url_names, status_code in url_names_status_code.items():
             with self.subTest(status_code=status_code):
